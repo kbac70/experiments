@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="
+            http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/aop
+			http://www.springframework.org/schema/aop/spring-aop.xsd
+			http://www.springframework.org/schema/cache
+			http://www.springframework.org/schema/cache/spring-cache.xsd
+			http://www.springframework.org/schema/p
+">
+    <!-- define custom scope support -->
+    <bean id="txScope" class="org.kbac.spring.scope.TransactionScope"/>
+    <bean class="org.springframework.beans.factory.config.CustomScopeConfigurer">
+        <property name="scopes">
+            <map>
+                <entry key="tx">
+                    <ref bean="txScope"/>
+                </entry>
+            </map>
+        </property>
+    </bean>
+
+    <!-- define caching support -->
+    <cache:annotation-driven />
+
+    <!-- first default cache manager -->
+    <bean id="cacheManager" class="org.springframework.cache.support.SimpleCacheManager">
+        <property name="caches">
+            <set>
+                <bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="persons"/>
+                <bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="counters"/>
+            </set>
+        </property>
+    </bean>
+
+    <!-- then scoped cache manager -->
+    <bean id="scopedCacheManager" class="org.springframework.cache.support.SimpleCacheManager" scope="tx">
+        <property name="caches">
+            <set>
+                <bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="persons"/>
+                <bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="counters"/>
+            </set>
+        </property>
+        <aop:scoped-proxy /> <!-- do not forget to make the cacheManager into the proxy -->
+    </bean>
+
+</beans>
