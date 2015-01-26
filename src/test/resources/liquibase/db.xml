@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+		xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="
+			http://www.liquibase.org/xml/ns/dbchangelog
+         	http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd
+">
+
+	<changeSet id="create_schema" author="SA">
+		<createTable tableName="person" schemaName="public" tablespace="public">
+			<column name="id" autoIncrement="true" type="int">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="pk_user" />
+			</column>
+			<column name="first_name" type="varchar(128)"></column>
+			<column name="last_name" type="varchar(128)"></column>
+			<column name="is_disabled" type="boolean" defaultValueBoolean="false">
+				<constraints nullable="false" />
+			</column>
+			<column name="is_deleted" type="boolean" defaultValueBoolean="false">
+				<constraints nullable="false" />
+			</column>
+		</createTable>
+	</changeSet>
+
+	<changeSet id="insert_dev_records" author="SA" context="dev">
+		<insert tableName="person">
+			<column name="id">2</column>
+			<column name="first_name">James</column>
+			<column name="last_name">Brown</column>
+		</insert>
+		<insert tableName="person">
+			<column name="id">3</column>
+			<column name="first_name">Andrew</column>
+			<column name="last_name">Green</column>
+		</insert>
+
+		<insert tableName="person">
+			<column name="user_id">1</column>
+			<column name="role_id">1</column>
+		</insert>
+	</changeSet>
+
+	<changeSet id="insert_test_records" author="SA" context="test">
+		<insert tableName="person">
+			<column name="id">1001</column>
+			<column name="first_name">John_Test</column>
+			<column name="last_name">Doe_Test</column>
+		</insert>
+		<insert tableName="person">
+			<column name="id">1002</column>
+			<column name="first_name">James_Test</column>
+			<column name="last_name">Brown_Test</column>
+		</insert>
+		<insert tableName="person">
+			<column name="id">1003</column>
+			<column name="first_name">Andrew_Test</column>
+			<column name="last_name">Green_Test</column>
+		</insert>
+	</changeSet>
+
+</databaseChangeLog>         
