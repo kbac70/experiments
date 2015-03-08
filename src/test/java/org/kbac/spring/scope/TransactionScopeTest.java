@@ -126,7 +126,7 @@ public class TransactionScopeTest {
             final boolean READ_WRITE = false;
             for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
                 sync.beforeCommit(READ_WRITE);
-                sync.afterCommit();
+                sync.afterCompletion(TransactionSynchronization.STATUS_UNKNOWN);
             }
 
             TransactionSynchronizationManager.clearSynchronization();
