@@ -280,7 +280,7 @@ public class TransactionScope implements Scope {
 
         @Override
         public void afterCommit() {
-            removeTransactionBeans();
+            //NOP
         }
 
         @Override

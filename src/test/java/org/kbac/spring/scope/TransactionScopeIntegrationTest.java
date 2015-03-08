@@ -14,6 +14,10 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
@@ -222,5 +226,36 @@ public class TransactionScopeIntegrationTest {
             return true;
         });
         assertEquals("unexpected number of transactions", 0, txScope.getTransactionIds().size());
+    }
+
+    @Test
+    public void scopedCounterInstanceChangesOnThread() throws InterruptedException, ExecutionException {
+        final Map<Counter, Long> counters = new ConcurrentHashMap<>();
+        final int INV_COUNT = 10;
+        final CountDownLatch allDone = new CountDownLatch(INV_COUNT);
+        final ExecutorService executor = Executors.newFixedThreadPool(3);
+        try {
+            final CompletionService<Boolean> completionService = new ExecutorCompletionService<Boolean>(executor);
+            for (int i = 0; i < INV_COUNT; i++) {
+                completionService.submit(new Callable<Boolean>() {
+                         @Override
+                         public Boolean call() throws Exception {
+                             final Object previous = counters.put(counterService.getCounter(Counter.SCOPED_COUNTER), allDone.getCount());
+                             allDone.countDown();
+                             return previous == null;
+                         }
+                     }
+                );
+            }
+
+            allDone.await();
+
+            Future<Boolean> future = null;
+            while ((future = completionService.poll()) != null) {
+                assertTrue("should indicate successful addition of the counter", future.get().booleanValue());
+            }
+        } finally {
+            executor.shutdown();
+        }
     }
 }
