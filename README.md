@@ -1,5 +1,5 @@
-# spring-ext
-Spring Extensions is a library of various classes and utilities extending the spring framework.
+# kbac-experiments
+Experiments is a library of various classes and utilities evaluated over time.
 
 For details on available classes please refer to the <a href="https://github.com/kbac70/spring-ext/wiki">WIKI</a>
 
