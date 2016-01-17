@@ -1,23 +1,61 @@
+/**
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2016 Krzysztof Bacalski
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.kbac.throttle;
 
-import org.springframework.util.Assert;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by krzysztof on 21/12/2015.
+ * <p/>
+ * Basic implementation of logging strategy allowing to control the bucket and issue warning log
+ * messages when bucket is leaking
+ *
+ * @author Krzysztof Bacalski
+ *
+ * @since 2016-01-17
  */
-public abstract class LoggingThrottleStrategy implements ThrottleStrategy {
+public class LoggingThrottleStrategy implements ThrottleStrategy {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggingThrottleStrategy.class);
 
     @Override
-    public final boolean handle(Bucket bucket) {
-        Assert.notNull(bucket, "bucket must not be null");
+    public final boolean dripAndCheckIfLeaked(final LeakyBucket bucket) {
+        Validate.notNull(bucket, "bucket must not be null");
 
-        final long dropCount = bucket.addDrop();
-        if (dropCount == bucket.getMaxDropCount()) {
-            handleFullBucket(dropCount, bucket.getMaxDropCount());
+        final boolean overflowing = bucket.addDrop() > bucket.getMaxDropCount();
+        if (overflowing) {
+            handleOverflowingBucket(bucket);
         }
 
-        return true;
+        return overflowing;
     }
 
-    protected abstract void handleFullBucket(long dropCount, long maxDropCount);
+    protected void handleOverflowingBucket(final LeakyBucket bucket) {
+        LOGGER.debug("exceeded max no of requests: {} requests per {}ms for: {}", bucket.getMaxDropCount()
+                , bucket.getDrainIntervalMillis(), bucket.getName());
+    }
 }

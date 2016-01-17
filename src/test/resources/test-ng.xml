@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suite name="kbac-suite" parallel="methods" thread-count="4" >
+    <test name="throttle-tests" group-by-instances="true">
+        <classes>
+        </classes>
+    </test>
+</suite>

@@ -3,11 +3,18 @@ package org.kbac.throttle;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-import static org.kbac.throttle.BucketUtils.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.kbac.throttle.BucketUtils.BUCKET_NAME;
+import static org.kbac.throttle.BucketUtils.MAX_DROP_COUNT;
+import static org.kbac.throttle.BucketUtils.fillBucket;
+import static org.kbac.throttle.BucketUtils.fillBucketAndWait;
 
 /**
- * Created by krzysztof on 16/01/2016.
+ * @author Krzysztof Bacalski
+ *
+ * @since 2016-01-17
  */
 public class LeakyBucketTest {
 
@@ -29,7 +36,7 @@ public class LeakyBucketTest {
     public void addsDropLeaks() throws Exception {
         fillBucket(this.bucket);
 
-        assertTrue("bucket should leak when full", bucket.addDrop() == MAX_DROP_COUNT );
+        assertTrue("bucket should leak when full", bucket.addDrop() > MAX_DROP_COUNT );
     }
 
     @Test
@@ -56,7 +63,7 @@ public class LeakyBucketTest {
 
     @Test
     public void defaultDrainIntervalMillisValid() throws Exception {
-        assertEquals(LeakyBucket.DEFAULT_DRAIN_INTERVAL_MILLIS, bucket.getDrainIntervalMillis());
+        assertEquals(LeakyBucket.DEFAULT_DRAIN_INTERVAL_MILLIS_DEFAULT, bucket.getDrainIntervalMillis());
     }
 
     @Test

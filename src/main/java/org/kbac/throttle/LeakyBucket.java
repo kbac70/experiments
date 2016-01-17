@@ -1,18 +1,46 @@
+/**
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2016 Krzysztof Bacalski
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.kbac.throttle;
 
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.Assert;
 
 /**
  * Created by krzysztof on 21/12/2015.
- *
+ * <p/>
  * Thread safe leaky bucket implementation allowing to ensure only given number of drops can make their
- * way into the bucket before it gets periodically drained.
+ * way into the bucket before it gets periodically drained. It leaks the drops when full.
+ *
+ * @author Krzysztof Bacalski
+ *
+ * @since 2016-01-17
  */
-public final class LeakyBucket {
+public class LeakyBucket {
 
-    public static final long DEFAULT_DRAIN_INTERVAL_MILLIS = Meter.THROTTLE_INTERVAL_MILLIS_DEFAULT;
+    public static final long DEFAULT_DRAIN_INTERVAL_MILLIS_DEFAULT = Meter.THROTTLE_INTERVAL_MILLIS_DEFAULT;
 
     public static final long NOTHING_DRAINED = -1;
 
@@ -22,50 +50,60 @@ public final class LeakyBucket {
 
     private final long maxDropCount;
 
+    private final long overflow;
+
     private final long drainIntervalMillis;
 
-    private volatile long lastDrainedMillis;
+    private long lastUsedMillis;
 
-    private volatile long dropCount;
+    private long lastDrainedMillis;
 
-    private volatile long leakedCount;
+    private long dropCount;
+
+    private long leakedCount;
 
 
     public LeakyBucket(final String name, final long maxDropCount) {
-        this(name, maxDropCount, DEFAULT_DRAIN_INTERVAL_MILLIS);
+        this(name, maxDropCount, DEFAULT_DRAIN_INTERVAL_MILLIS_DEFAULT);
     }
 
     public LeakyBucket(final String name, final long maxDropCount, long drainIntervalMillis) {
-        Assert.hasLength(name, "name must not be empty");
-        Assert.isTrue(maxDropCount > 0, "maxDropCount must be greater than 0");
-        Assert.isTrue(drainIntervalMillis > 0, "drainIntervalMillis must be greater than 0");
+        Validate.notBlank(name, "name must not be empty");
+        Validate.isTrue(maxDropCount > 0, "maxDropCount must be greater than 0");
+        Validate.isTrue(drainIntervalMillis > 0, "drainIntervalMillis must be greater than 0");
 
         this.name = name;
         this.maxDropCount = maxDropCount;
+        this.overflow = this.maxDropCount + 1;
         this.drainIntervalMillis = drainIntervalMillis;
 
-        drain();
+        this.lastDrainedMillis = System.currentTimeMillis();
+        this.lastUsedMillis = this.lastDrainedMillis;
     }
 
     /**
      * Invoke this method to add a drop to this bucket.
-     * @return maxDropCount when bucket is full, number of drops within drain interval otherwise
+     *
+     * @return maxDropCount + 1 when bucket is full, number of drops within drain interval otherwise
      */
     public synchronized long addDrop() {
+        this.lastUsedMillis = System.currentTimeMillis();
+
         final long currentDrops;
         if (!isFull()) {
+            currentDrops = ++this.dropCount;
             LOGGER.debug("added drop: {}", this);
-            currentDrops = this.dropCount++;
         } else {
             this.leakedCount++;
-            LOGGER.debug("already full: {}", this);
-            currentDrops = maxDropCount;
+            LOGGER.debug("leaked drop: {}", this);
+            currentDrops = this.overflow;
         }
         return currentDrops;
     }
 
     /**
      * Invoke this method to request that all the drops are drained from this bucket.
+     *
      * @return NOTHING_DRAINED when drain invocation got executed within the drainIntervalMillis,
      * number of drained drops otherwise
      */
@@ -73,20 +111,27 @@ public final class LeakyBucket {
         final long currentTimeMillis = System.currentTimeMillis();
         final long drained;
         if (currentTimeMillis - lastDrainedMillis < drainIntervalMillis) {
-            LOGGER.trace("not drained: {}", this);
+            LOGGER.debug("not drained: {}", this);
             drained = NOTHING_DRAINED;
         } else {
             this.lastDrainedMillis = currentTimeMillis;
-            LOGGER.debug("drained: {}", this);
+            if (this.leakedCount > 0) {
+                LOGGER.warn("{} dropped {} requests in {}ms", name, leakedCount, drainIntervalMillis);
+            }
             drained = this.dropCount;
             this.dropCount = 0;
             this.leakedCount = 0;
+            LOGGER.debug("drained: {}", this);
         }
         return drained;
     }
 
     public long getDrainIntervalMillis() {
         return this.drainIntervalMillis;
+    }
+
+    public long getLastUsedMillis() {
+        return this.lastUsedMillis;
     }
 
     public long getMaxDropCount() {
@@ -100,7 +145,7 @@ public final class LeakyBucket {
     @Override
     public String toString() {
         return this.name + "[" + this.dropCount + "|" + this.leakedCount + "|" + this.maxDropCount + "]@"
-                + this.drainIntervalMillis + "ms";
+                + this.drainIntervalMillis + "ms " + super.toString();
     }
 
     protected long getDropCount() {
