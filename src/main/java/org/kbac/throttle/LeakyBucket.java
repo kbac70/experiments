@@ -145,7 +145,7 @@ public class LeakyBucket {
     @Override
     public String toString() {
         return this.name + "[" + this.dropCount + "|" + this.leakedCount + "|" + this.maxDropCount + "]@"
-                + this.drainIntervalMillis + "ms " + super.toString();
+                + this.drainIntervalMillis + "ms";
     }
 
     protected long getDropCount() {
