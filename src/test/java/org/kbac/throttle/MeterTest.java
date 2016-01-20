@@ -110,8 +110,6 @@ public class MeterTest {
                         }
                     }
 
-                    Thread.sleep(100);
-
                     barrier.await();
                 }
 
@@ -181,12 +179,12 @@ public class MeterTest {
     public void executesMultithreaded() throws Exception {
 
         final TaskDef[] tasks = {
-                  new TaskDef("#4:SHRD", 10, 20)
-                , new TaskDef("#1:LEAK", 30, 20)
-                , new TaskDef("#4:SHRD", 10, 20)
-                , new TaskDef("#2:NORM", 20, 20)
-                , new TaskDef("#4:SHRD", 10, 20)
-                , new TaskDef("#4:SHRD", 10, 20)
+                  new TaskDef("#4:SHRD", 100, 200)
+                , new TaskDef("#1:LEAK", 300, 200)
+                , new TaskDef("#4:SHRD", 100, 200)
+                , new TaskDef("#2:NORM", 200, 200)
+                , new TaskDef("#4:SHRD", 100, 200)
+                , new TaskDef("#4:SHRD", 100, 200)
         };
 
         final ConcurrentMap<String, LeakyBucket> buckets = new ConcurrentHashMap<>();

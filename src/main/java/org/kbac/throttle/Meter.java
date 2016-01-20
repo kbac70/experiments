@@ -113,6 +113,7 @@ public class Meter implements AutoCloseable {
             LeakyBucket prev = buckets.putIfAbsent(name, bucket);
             if (prev != null) {
                 LOGGER.debug("previous bucket used {}", prev);
+                bucket = prev;
             }
         }
         return throttleStrategy.dripAndCheckIfLeaked(bucket);
